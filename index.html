@@ -34,7 +34,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     header h1 {
@@ -49,12 +49,20 @@
       font-size: 0.95rem;
     }
 
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+
     .filters {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 22px;
     }
 
     .filter-btn {
@@ -74,6 +82,17 @@
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
       border-color: transparent;
       color: #fff;
+    }
+
+    .sound-btn {
+      background: var(--card-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
     }
 
     .grid {
@@ -250,8 +269,6 @@
       flex-wrap: wrap;
       margin-top: 14px;
     }
-
-    .muted { color: var(--muted); font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -261,7 +278,10 @@
       <p>Situações engraçadas, românticas, econômicas e desafios para jogar agora</p>
     </header>
 
-    <div class="filters" id="filters"></div>
+    <div class="top-bar">
+      <div class="filters" id="filters"></div>
+      <button class="sound-btn" id="soundBtn" type="button">🔊 Som Zueiro: Ligado</button>
+    </div>
 
     <div class="grid">
       <div class="panel wheel-box">
@@ -308,34 +328,64 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "roleta_diversao_itens_v1";
+    const STORAGE_KEY = "roleta_diversao_itens_v2";
     const CATEGORIES = ["Todas", "Engraçada", "Romântica", "Econômica", "Desafio"];
     const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#6366f1", "#ec4899", "#8b5cf6"];
 
     const DEFAULT_ITEMS = [
+      // Engraçadas (8)
       { category: "Engraçada", text: "Falar com sotaque exagerado pelos próximos 5 minutos" },
       { category: "Engraçada", text: "Narrar tudo que está fazendo como se fosse um jogo de futebol" },
       { category: "Engraçada", text: "Fazer uma cara séria e tentar fazer o outro rir sem falar nada" },
+      { category: "Engraçada", text: "Falar apenas rimando nas próximas 3 respostas" },
+      { category: "Engraçada", text: "Imitar um locutor de rádio anunciando um supermercado" },
+      { category: "Engraçada", text: "Fazer a pose mais dramática de novela para pedir um copo d'água" },
+      { category: "Engraçada", text: "Contar uma história normal como se fosse um filme de suspense" },
+      { category: "Engraçada", text: "Trocar o tom de voz para voz fina ou grave nos próximos 2 minutos" },
+
+      // Românticas (8)
       { category: "Romântica", text: "Elogio sincero de 30 segundos olhando nos olhos, sem celular" },
       { category: "Romântica", text: "Escolher uma música que marca um bom momento e ouvir juntos" },
       { category: "Romântica", text: "Preparar café, chá ou bebida favorita um para o outro" },
+      { category: "Romântica", text: "Lembrar o momento mais engraçado ou marcante que viveram juntos" },
+      { category: "Romântica", text: "Dar um abraço demorado de 20 segundos sem pressa" },
+      { category: "Romântica", text: "Escrever ou mandar uma mensagem curta carinhosa agora" },
+      { category: "Romântica", text: "Escolher juntos um filme ou série para ver no próximo descanso" },
+      { category: "Romântica", text: "Fazer uma massagem rápida de 2 minutos nos ombros ou mãos" },
+
+      // Econômicas (8)
       { category: "Econômica", text: "Montar um lanche ou sobremesa gastando no máximo R$ 15" },
       { category: "Econômica", text: "Planejar um rolê ou programa legal custando R$ 0" },
       { category: "Econômica", text: "Fazer uma refeição criativa usando só o que já tem em casa" },
+      { category: "Econômica", text: "Criar uma lista de 3 coisas que dá para economizar essa semana" },
+      { category: "Econômica", text: "Separar algo parado em casa para vender, doar ou reaproveitar" },
+      { category: "Econômica", text: "Pesquisar uma receita boa e barata para o próximo café ou jantar" },
+      { category: "Econômica", text: "Combinar um dia sem gastos por impulso" },
+      { category: "Econômica", text: "Fazer uma bebida especial caseira gastando quase nada" },
+
+      // Desafios (8)
       { category: "Desafio", text: "Pedra, papel e tesoura valendo um favor simples na hora" },
       { category: "Desafio", text: "Mandar uma mensagem positiva para alguém querido agora" },
-      { category: "Desafio", text: "Responder 3 perguntas diretas sem enrolar" }
+      { category: "Desafio", text: "Responder 3 perguntas diretas sem enrolar" },
+      { category: "Desafio", text: "Fazer 15 agachamentos ou alongamento agora mesmo" },
+      { category: "Desafio", text: "Ficar 2 minutos sem usar gírias nem repetir a mesma palavra" },
+      { category: "Desafio", text: "Adivinhar o que o outro está pensando em até 3 palpites" },
+      { category: "Desafio", text: "Fazer uma foto engraçada ou criativa para guardar" },
+      { category: "Desafio", text: "Cumprir uma tarefa rápida de 2 minutos que estava pendente" }
     ];
 
     let items = loadItems();
     let activeCategory = "Todas";
     let currentAngle = 0;
     let isSpinning = false;
+    let soundEnabled = true;
+    let audioCtx = null;
     let history = [];
 
     const canvas = document.getElementById("wheel");
     const ctx = canvas.getContext("2d");
     const filtersEl = document.getElementById("filters");
+    const soundBtn = document.getElementById("soundBtn");
     const spinBtn = document.getElementById("spinBtn");
     const spinAgainBtn = document.getElementById("spinAgainBtn");
     const doneBtn = document.getElementById("doneBtn");
@@ -345,6 +395,33 @@
     const historyListEl = document.getElementById("historyList");
     const exportBtn = document.getElementById("exportBtn");
     const resetBtn = document.getElementById("resetBtn");
+
+    function getAudioContext() {
+      if (!soundEnabled) return null;
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+      return audioCtx;
+    }
+
+    function updateSoundButton() {
+      soundBtn.textContent = soundEnabled ? "🔊 Som Zueiro: Ligado" : "🔇 Som Zueiro: Mudo";
+    }
+
+    soundBtn.onclick = () => {
+      soundEnabled = !soundEnabled;
+      updateSoundButton();
+      if (soundEnabled) {
+        getAudioContext();
+        playBoingSound();
+      }
+    };
 
     function loadItems() {
       try {
@@ -411,13 +488,12 @@
         ctx.rotate(start + slice / 2);
         ctx.textAlign = "right";
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 13px system-ui, sans-serif";
+        ctx.font = "bold 12px system-ui, sans-serif";
         const label = item.text.length > 26 ? item.text.slice(0, 25) + "…" : item.text;
         ctx.fillText(label, r - 14, 4);
         ctx.restore();
       });
 
-      // Centro da roleta
       ctx.beginPath();
       ctx.arc(cx, cy, 22, 0, Math.PI * 2);
       ctx.fillStyle = "#0f172a";
@@ -427,20 +503,94 @@
       ctx.stroke();
     }
 
-    function playTickSound() {
+    // Som engraçado de catraca / "trec-trec" a cada fatia
+    function playTickSound(speedRatio = 0.5) {
       try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const audioCtx = new AudioCtx();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.045);
+        const ctxAudio = getAudioContext();
+        if (!ctxAudio) return;
+
+        const now = ctxAudio.currentTime;
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+
+        osc.type = "sawtooth";
+        const baseFreq = 420 + speedRatio * 340;
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(160, now + 0.055);
+
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.05);
+        gain.connect(ctxAudio.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.065);
+      } catch (e) {}
+    }
+
+    // Som engraçado de "boing" ao iniciar ou testar som
+    function playBoingSound() {
+      try {
+        const ctxAudio = getAudioContext();
+        if (!ctxAudio) return;
+
+        const now = ctxAudio.currentTime;
+        const osc = ctxAudio.createOscillator();
+        const gain = ctxAudio.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(620, now + 0.14);
+        osc.frequency.exponentialRampToValueAtTime(290, now + 0.28);
+
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(ctxAudio.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.32);
+      } catch (e) {}
+    }
+
+    // Som cômico e animado de "tcharam!" quando sorteia
+    function playWinSound() {
+      try {
+        const ctxAudio = getAudioContext();
+        if (!ctxAudio) return;
+
+        const melody = [
+          { freq: 392.0, time: 0.00, dur: 0.09, type: "triangle" }, // G4
+          { freq: 523.25, time: 0.08, dur: 0.09, type: "triangle" }, // C5
+          { freq: 659.25, time: 0.16, dur: 0.09, type: "triangle" }, // E5
+          { freq: 783.99, time: 0.24, dur: 0.16, type: "square" },   // G5
+          { freq: 659.25, time: 0.40, dur: 0.10, type: "triangle" }, // E5
+          { freq: 987.77, time: 0.50, dur: 0.28, type: "triangle" }  // B5 engraçado final
+        ];
+
+        melody.forEach((n) => {
+          const start = ctxAudio.currentTime + n.time;
+          const osc = ctxAudio.createOscillator();
+          const gain = ctxAudio.createGain();
+
+          osc.type = n.type;
+          osc.frequency.setValueAtTime(n.freq, start);
+          if (n.time > 0.45) {
+            osc.frequency.exponentialRampToValueAtTime(n.freq * 1.12, start + n.dur);
+          }
+
+          const vol = n.type === "square" ? 0.08 : 0.18;
+          gain.gain.setValueAtTime(vol, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + n.dur);
+
+          osc.connect(gain);
+          gain.connect(ctxAudio.destination);
+
+          osc.start(start);
+          osc.stop(start + n.dur + 0.02);
+        });
       } catch (e) {}
     }
 
@@ -448,6 +598,9 @@
       if (isSpinning) return;
       const list = getFilteredItems();
       if (list.length < 2) return;
+
+      getAudioContext();
+      playBoingSound();
 
       isSpinning = true;
       spinBtn.disabled = true;
@@ -470,7 +623,7 @@
         const currentIndex = Math.floor(((currentAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / slice);
         if (currentIndex !== lastTickIndex) {
           lastTickIndex = currentIndex;
-          playTickSound();
+          playTickSound(1 - progress);
         }
 
         drawWheel();
@@ -478,7 +631,6 @@
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          // Ponteiro fica no topo (-Math.PI / 2)
           const pointerAngle = ((Math.PI * 1.5 - currentAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
           const winningIndex = Math.floor(pointerAngle / slice) % list.length;
           const winner = list[winningIndex];
@@ -486,6 +638,7 @@
           resultCategoryEl.textContent = winner.category;
           resultTextEl.textContent = winner.text;
           addHistory(winner);
+          playWinSound();
 
           isSpinning = false;
           spinBtn.disabled = false;
@@ -551,6 +704,7 @@
     spinBtn.onclick = spinWheel;
     spinAgainBtn.onclick = spinWheel;
 
+    updateSoundButton();
     renderFilters();
     drawWheel();
   </script>
