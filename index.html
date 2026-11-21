@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roleta da Diversão</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #0b1120;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #f97316;
+      --accent-2: #ec4899;
+      --ok: #22c55e;
+      --border: rgba(255,255,255,0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 65%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 48px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+
+    .filter-btn {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover { transform: translateY(-1px); }
+    .filter-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 780px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: rgba(30, 41, 59, 0.82);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .wheel-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 28px solid #facc15;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45));
+      margin-bottom: -10px;
+      z-index: 2;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 50%;
+      box-shadow: 0 14px 35px rgba(0,0,0,0.45);
+    }
+
+    .spin-btn {
+      margin-top: 18px;
+      width: 100%;
+      max-width: 300px;
+      padding: 14px 22px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
+      transition: transform 0.12s ease, opacity 0.2s ease;
+    }
+
+    .spin-btn:hover:not(:disabled) { transform: translateY(-2px); }
+    .spin-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .result-card {
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      min-height: 155px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, 0.18);
+      color: #fdba74;
+      width: fit-content;
+    }
+
+    .result-text {
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-sm {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-ok {
+      background: rgba(34, 197, 94, 0.18);
+      border-color: rgba(34, 197, 94, 0.45);
+      color: #86efac;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 18px 0 10px;
+    }
+
+    .add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .add-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    @media (max-width: 520px) {
+      .add-row { flex-direction: column; }
+    }
+
+    input, select {
+      background: var(--card-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      width: 100%;
+    }
+
+    .history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      font-size: 0.85rem;
+      color: var(--muted);
+      background: rgba(11, 17, 32, 0.65);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .history-item strong { color: var(--text); }
+
+    .footer-tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .muted { color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎡 Roleta da Diversão</h1>
+      <p>Situações engraçadas, românticas, econômicas e desafios para jogar agora</p>
+    </header>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="grid">
+      <div class="panel wheel-box">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="380" height="380"></canvas>
+        <button class="spin-btn" id="spinBtn">GIRAR ROLETA</button>
+      </div>
+
+      <div class="panel">
+        <div class="result-card">
+          <span class="badge" id="resultCategory">Pronto para jogar</span>
+          <div class="result-text" id="resultText">Clique em "GIRAR ROLETA" para sortear uma situação.</div>
+          <div class="result-actions">
+            <button class="btn-sm btn-ok" id="doneBtn">✓ Concluído</button>
+            <button class="btn-sm" id="spinAgainBtn">↻ Girar de novo</button>
+          </div>
+        </div>
+
+        <h2 class="section-title">Adicionar situação personalizada</h2>
+        <form class="add-form" id="addForm">
+          <div class="add-row">
+            <select id="newCategory">
+              <option value="Engraçada">Engraçada</option>
+              <option value="Romântica">Romântica</option>
+              <option value="Econômica">Econômica</option>
+              <option value="Desafio">Desafio</option>
+            </select>
+            <input type="text" id="newText" placeholder="Ex.: Fazer um lanche gastando até R$ 15" required />
+          </div>
+          <button type="submit" class="btn-sm">+ Salvar na roleta</button>
+        </form>
+
+        <h2 class="section-title">Histórico recente</h2>
+        <ul class="history-list" id="historyList">
+          <li class="history-item">Nenhuma rodada ainda.</li>
+        </ul>
+
+        <div class="footer-tools">
+          <button class="btn-sm" id="exportBtn">Exportar JSON</button>
+          <button class="btn-sm" id="resetBtn">Restaurar padrão</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "roleta_diversao_itens_v1";
+    const CATEGORIES = ["Todas", "Engraçada", "Romântica", "Econômica", "Desafio"];
+    const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#6366f1", "#ec4899", "#8b5cf6"];
+
+    const DEFAULT_ITEMS = [
+      { category: "Engraçada", text: "Falar com sotaque exagerado pelos próximos 5 minutos" },
+      { category: "Engraçada", text: "Narrar tudo que está fazendo como se fosse um jogo de futebol" },
+      { category: "Engraçada", text: "Fazer uma cara séria e tentar fazer o outro rir sem falar nada" },
+      { category: "Romântica", text: "Elogio sincero de 30 segundos olhando nos olhos, sem celular" },
+      { category: "Romântica", text: "Escolher uma música que marca um bom momento e ouvir juntos" },
+      { category: "Romântica", text: "Preparar café, chá ou bebida favorita um para o outro" },
+      { category: "Econômica", text: "Montar um lanche ou sobremesa gastando no máximo R$ 15" },
+      { category: "Econômica", text: "Planejar um rolê ou programa legal custando R$ 0" },
+      { category: "Econômica", text: "Fazer uma refeição criativa usando só o que já tem em casa" },
+      { category: "Desafio", text: "Pedra, papel e tesoura valendo um favor simples na hora" },
+      { category: "Desafio", text: "Mandar uma mensagem positiva para alguém querido agora" },
+      { category: "Desafio", text: "Responder 3 perguntas diretas sem enrolar" }
+    ];
+
+    let items = loadItems();
+    let activeCategory = "Todas";
+    let currentAngle = 0;
+    let isSpinning = false;
+    let history = [];
+
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const filtersEl = document.getElementById("filters");
+    const spinBtn = document.getElementById("spinBtn");
+    const spinAgainBtn = document.getElementById("spinAgainBtn");
+    const doneBtn = document.getElementById("doneBtn");
+    const resultCategoryEl = document.getElementById("resultCategory");
+    const resultTextEl = document.getElementById("resultText");
+    const addForm = document.getElementById("addForm");
+    const historyListEl = document.getElementById("historyList");
+    const exportBtn = document.getElementById("exportBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function loadItems() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length >= 2) return parsed;
+        }
+      } catch (e) {}
+      return [...DEFAULT_ITEMS];
+    }
+
+    function saveItems() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function getFilteredItems() {
+      if (activeCategory === "Todas") return items;
+      const filtered = items.filter((i) => i.category === activeCategory);
+      return filtered.length >= 2 ? filtered : items;
+    }
+
+    function renderFilters() {
+      filtersEl.innerHTML = "";
+      CATEGORIES.forEach((cat) => {
+        const btn = document.createElement("button");
+        btn.className = "filter-btn" + (cat === activeCategory ? " active" : "");
+        btn.textContent = cat;
+        btn.onclick = () => {
+          if (isSpinning) return;
+          activeCategory = cat;
+          renderFilters();
+          drawWheel();
+        };
+        filtersEl.appendChild(btn);
+      });
+    }
+
+    function drawWheel() {
+      const list = getFilteredItems();
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const r = cx - 8;
+      const slice = (Math.PI * 2) / list.length;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      list.forEach((item, idx) => {
+        const start = currentAngle + idx * slice;
+        const end = start + slice;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, start, end);
+        ctx.closePath();
+        ctx.fillStyle = COLORS[idx % COLORS.length];
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#0f172a";
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(start + slice / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 13px system-ui, sans-serif";
+        const label = item.text.length > 26 ? item.text.slice(0, 25) + "…" : item.text;
+        ctx.fillText(label, r - 14, 4);
+        ctx.restore();
+      });
+
+      // Centro da roleta
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = "#0f172a";
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#facc15";
+      ctx.stroke();
+    }
+
+    function playTickSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioCtx();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.045);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    function spinWheel() {
+      if (isSpinning) return;
+      const list = getFilteredItems();
+      if (list.length < 2) return;
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+
+      const slice = (Math.PI * 2) / list.length;
+      const extraSpins = (5 + Math.random() * 4) * Math.PI * 2;
+      const randomOffset = Math.random() * Math.PI * 2;
+      const targetAngle = currentAngle + extraSpins + randomOffset;
+      const duration = 3600;
+      const startTime = performance.now();
+      const startAngle = currentAngle;
+      let lastTickIndex = -1;
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        currentAngle = startAngle + (targetAngle - startAngle) * easeOut;
+
+        const currentIndex = Math.floor(((currentAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / slice);
+        if (currentIndex !== lastTickIndex) {
+          lastTickIndex = currentIndex;
+          playTickSound();
+        }
+
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Ponteiro fica no topo (-Math.PI / 2)
+          const pointerAngle = ((Math.PI * 1.5 - currentAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+          const winningIndex = Math.floor(pointerAngle / slice) % list.length;
+          const winner = list[winningIndex];
+
+          resultCategoryEl.textContent = winner.category;
+          resultTextEl.textContent = winner.text;
+          addHistory(winner);
+
+          isSpinning = false;
+          spinBtn.disabled = false;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function addHistory(winner) {
+      history.unshift(winner);
+      if (history.length > 12) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (!history.length) {
+        historyListEl.innerHTML = '<li class="history-item">Nenhuma rodada ainda.</li>';
+        return;
+      }
+      historyListEl.innerHTML = history
+        .map((h) => `<li class="history-item"><strong>[${h.category}]</strong> ${h.text}</li>`)
+        .join("");
+    }
+
+    addForm.onsubmit = (e) => {
+      e.preventDefault();
+      const category = document.getElementById("newCategory").value;
+      const text = document.getElementById("newText").value.trim();
+      if (!text) return;
+      items.push({ category, text });
+      saveItems();
+      document.getElementById("newText").value = "";
+      drawWheel();
+    };
+
+    doneBtn.onclick = () => {
+      const prev = resultTextEl.textContent;
+      if (!prev.startsWith("✓") && resultCategoryEl.textContent !== "Pronto para jogar") {
+        resultTextEl.textContent = "✓ " + prev;
+      }
+    };
+
+    exportBtn.onclick = () => {
+      const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pacote-roleta.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    resetBtn.onclick = () => {
+      if (isSpinning) return;
+      items = [...DEFAULT_ITEMS];
+      saveItems();
+      activeCategory = "Todas";
+      renderFilters();
+      drawWheel();
+    };
+
+    spinBtn.onclick = spinWheel;
+    spinAgainBtn.onclick = spinWheel;
+
+    renderFilters();
+    drawWheel();
+  </script>
+</body>
+</html>
